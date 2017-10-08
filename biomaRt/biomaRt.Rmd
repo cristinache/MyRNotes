@@ -1,0 +1,151 @@
+---
+title: "BiomaRt"
+author: "Cristina Cheroni"
+date: "31 January 2017"
+output: html_document
+---
+
+Procedure to retrieve information using biomart repository
+
+
+### 1. Environment Set Up
+
+#### 1.1 Library Installation and Upload
+
+```{r}
+# source('https://bioconductor.org/biocLite.R')
+# biocLite('biomaRt')
+library(biomaRt)
+```
+
+****
+
+### 2. Data definition or upload
+
+Example starting from a vector of human genes that have been randomly selected. In this case each gene is identified by its Ensembl Gene Code. 
+
+```{r}
+Genes <- c('ENSG00000003402', 'ENSG00000004799', 'ENSG00000004846', 'ENSG00000006788', 'ENSG00000008256', 
+'ENSG00000008311', 'ENSG00000009413', 'ENSG00000011198', 'ENSG00000012048', 'ENSG00000013293')
+```
+
+****
+
+### 3. Database and data selection
+
+#### 3.1 Current version
+
+To explore the list of available information
+```{r}
+listMarts(host='www.ensembl.org')
+```
+
+To Select the database of interest
+```{r}
+Mart <- useMart(host='www.ensembl.org', biomart='ensembl', version='Ensembl Genes 87')
+listDatasets(Mart)
+HumanMart <- useDataset(Mart, dataset='hsapiens_gene_ensembl')
+MouseMart <- useDataset(Mart, dataset='mmusculus_gene_ensembl')
+```
+The syntax above gives access to the last version of the database. 
+
+#### 3.2 Previous versions and stable research
+
+To retrieve a specific version and mantain the selection stable in time, it is better to use the following syntax: 
+```{r}
+listMarts(host='oct2016.archive.ensembl.org')
+HumanMart86 <- useMart(biomart="ENSEMBL_MART_ENSEMBL", host="may2012.archive.ensembl.org", path="/biomart/martservice", dataset="hsapiens_gene_ensembl")
+```
+The version and correct denomination can be retrieved from Ensembl website.
+
+****
+
+### 4. Filters and Attributes
+
+#### 4.1 Attributes
+Attributes specify the information we want to retrieve. 
+Available Attributes domains: Feature, Structures, Homologues, Variant, Sequences
+```{r}
+Attributes <- listAttributes(HumanMart86)
+dim(Attributes)
+Attributes[1:20,]
+```
+
+#### 4.2 Filters
+Filters are the key we use for our research. 
+Available Filters: Region, Gene, Phenotype, Gene Ontology, Multi-species comparison, Protein domains and families, Variants 
+```{r}
+Filters <- listFilters(HumanMart86)
+dim(Filters)
+Filters[1:20,]
+```
+
+
+****
+
+### 5. Example: Gene Annotation
+
+#### 5.1 First interrogation: gene symbol and description
+```{r}
+Symbols <- getBM(mart=HumanMart, attributes=c('ensembl_gene_id','hgnc_symbol','description') ,filters='ensembl_gene_id', values=TopGenes, uniqueRows=TRUE)
+Symbols
+```
+
+#### 5.2. Second interrogation: genomic coordinates
+```{r}
+Coordinates <- getBM(mart=HumanMart86, attributes=c('ensembl_gene_id','hgnc_symbol', 'chromosome_name','start_position') ,filters='ensembl_gene_id', values=Genes, , uniqueRows=TRUE)
+Coordinates
+```
+
+#### 5.3 Third interrogation: protein domains
+```{r}
+Domains <- getBM(mart=HumanMart, attributes=c('ensembl_gene_id','hgnc_symbol', 'interpro', 'interpro_description'), values=Genes, filters='ensembl_gene_id', uniqueRows=T)
+Domains
+```
+
+#### 5.4 Fourth interrogation: associated phenotypes
+```{r}
+Phenotypes <- getBM(mart=HumanMart, attributes=c('ensembl_gene_id','hgnc_symbol', 'phenotype_description'), values=Genes, filters='ensembl_gene_id', uniqueRows=T)
+Phenotypes
+```
+
+
+****
+
+### 6. Example: Sequence
+
+For the retrieval of sequences, the wrapper getSequence is recommanded
+
+#### 6.1 First interrogation: gene 5' Flanking sequence
+```{r}
+
+entrez=c("673","7157","837")
+getSequence(id = entrez, type="entrezgene",seqType="coding_gene_flank",upstream=100, mart=HumanMart86)
+
+
+Domains <- getBM(mart=HumanMart, attributes=c('ensembl_gene_id','hgnc_symbol', 'interpro', 'interpro_description'), values=Genes, filters='ensembl_gene_id', uniqueRows=T)
+
+
+
+useMart("ensembl",dataset="hsapiens_gene_ensembl")
+
+
+
+
+getSequence( chromosome, start, end, id, type, seqType, upstream, downstream, mart, verbose=FALSE)
+
+
+ensemblMart86 <- useMart(biomart="ensembl", host="may2012.archive.ensembl.org", path="/biomart/martservice", dataset="hsapiens_gene_ensembl")
+
+
+Flanking <- getSequence(id = Genes[1:3], type ='ensembl_gene_id', seqType="coding_gene_flank", upstream=100, mart=HumanMart)
+
+
+Flanking <- getBM(mart=HumanMart, attributes=c('ensembl_gene_id','ensembl_transcript_id', 'transcript_flank') ,filters=c('ensembl_gene_id', 'upstream_flank'), values=list(c(Genes),100), uniqueRows=TRUE)
+
+Flanking <- getBM(mart=HumanMart, attributes=c('ensembl_gene_id','ensembl_transcript_id', 'transcript_flank') ,filters=list('ensembl_gene_id', 'upstream_flank'), values=c(Genes, '5000'), uniqueRows=TRUE)
+Symbols
+```
+
+
+
